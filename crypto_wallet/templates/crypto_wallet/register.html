@@ -1,0 +1,10 @@
+{%  extends 'crypto_wallet/base.html' %}
+{% block content %}
+
+<form action="{% url 'crypto_wallet:register' %}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button name="submit">Register</button>
+</form>
+
+{% endblock %}
