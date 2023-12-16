@@ -33,34 +33,47 @@ def new_account(request):
     }
     request.session['info'] = info
     return JsonResponse(info, safe=False)
+
+@login_required
+def balance(request):
+    address = request.session['info']['address']
+    balance = web3.eth.get_balance(address)
+    balance = web3.from_wei(balance, 'ether')
+    return JsonResponse({'balance': balance})
     
 @login_required
-def balance(request, coin_address):
+def token_balance(request, contract_address):
     address = request.session['info']['address']
     checksum_address = Web3.to_checksum_address(address)
     print(checksum_address)
-    contract = web3.eth.contract(address=coin_address, abi=erc20_abi)
+    contract = web3.eth.contract(address=contract_address, abi=erc20_abi)
     balance = contract.functions.balanceOf(checksum_address).call()
+    balance = web3.from_wei(balance, 'ether')
     return JsonResponse({'balance': balance})
 
 @login_required
 def send_tx(request):
     if request.method == "POST":
-        data = request.get_json()
-        nonce = web3.eth.getTransactionCount(request.session['info']['address'])
+        json_data = request.body.decode('utf-8')
+        print('hehe', json_data)
+        # amount = request.POST.get('amount')
+        data = json.loads(json_data)
+        print('Hello,', data['amount'])
+        print('Hello,', data['to'])
+        nonce = web3.eth.get_transaction_count(request.session['info']['address'])
         txn_dict = {
             'to': data['to'],
-            'value': web3.toWei(data['amount'], 'ether'),
+            'value': Web3.to_wei(data['amount'], 'ether'),
             'gas': 2000000,
-            'gasPrice': web3.toWei('40', 'gwei'),
+            'gasPrice': Web3.to_wei('40', 'gwei'),
             'nonce': nonce,
             'chainId': 3
         }
-        signed_txn = web3.eth.account.signTransaction(txn_dict, request.session['info']['privateKey'])
-        txn_hash = web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        signed_txn = web3.eth.account.sign_transaction(txn_dict, request.session['info']['privateKey'])
+        txn_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
         return JsonResponse({'transaction_hash': txn_hash.hex()})
     else:
-        return redirect('crypto_wallet:home')
+        return JsonResponse({'transaction_hash': 'Error'})
 
 @login_required
 def market_data(request, contract_address, days):

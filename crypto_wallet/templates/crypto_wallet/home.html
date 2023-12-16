@@ -17,16 +17,22 @@
 
             <button id="new-account">Create New Account</button>
             <div id="account-info"></div>
+            <br>
+            <button id="eth-balance">Eth Balance</button>
+            <div id="eth-balance-info"></div>
 
-            <h2>Check Balance</h2>
+            <h2>Check Token Balance</h2>
             <input type="text" id="balance-address" placeholder="Enter Contract Address">
-            <button id="check-balance">Check Balance</button>
+            <button id="check-balance">Check Token Balance</button>
             <div id="balance-info"></div>
 
             <h2>Send Transaction</h2>
-            <input type="text" id="recipient-address" placeholder="Enter Recipient's Address">
-            <input type="text" id="amount" placeholder="Enter Amount to Send">
-            <button id="send-transaction">Send Transaction</button>
+            <form action="{% url 'crypto_wallet:send_tx' %}" method="post">
+                {% csrf_token %}
+                <input type="text" id="recipient-address" placeholder="Enter Recipient's Address">
+                <input type="text" id="amount" placeholder="Enter Amount to Send in ETH">
+                <button id="send-transaction">Send Transaction</button>
+            </form>
             <div id="transaction-info"></div>
 
             <h2>View Market Chart</h2>
@@ -53,19 +59,35 @@
                     });
                 });
 
+                $("#eth-balance").click(function () {
+                    $.get("balance/", (data) => {
+                        $("#eth-balance-info").html("Balance: " + data.balance + " ETH");
+                    });
+                });
+
                 $("#check-balance").click(function () {
                     var address = $("#balance-address").val();
-                    $.get("/balance/" + address, (data) => {
+                    $.get("/token_balance/" + address, (data) => {
                         $("#balance-info").html("Balance: " + data.balance);
                     });
                 });
 
                 $("#send-transaction").click(function () {
                     var to = $("#recipient-address").val();
+                    console.log(to);
                     var amount = $("#amount").val();
-                    $.post("/send_tx/", { to: to, amount: amount }, (data) => {
+                    console.log(amount);
+                    fetch('/send_tx/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ to, amount })
+                    })
+                    .then(data => {
                         $("#transaction-info").html("Transaction Hash: " + data.transaction_hash);
-                    });
+                    })
+                    .catch(error => { console.error('Error:', error); });
                 });
 
                 $("#view-market-chart").click(function () {

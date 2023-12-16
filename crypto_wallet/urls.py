@@ -6,7 +6,8 @@ from . import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('new_account/', views.new_account, name='new_account'),
-    path('balance/<str:coin_address>/', views.balance, name='balance'),
+    path('balance/', views.balance, name='balance'),
+    path('token_balance/<str:contract_address>/', views.token_balance, name='token_balance'),
     path('send_tx/', views.send_tx, name='send'),
     path('market_data/<str:contract_address>/<int:days>/', views.market_data, name='market_data'),
     path('register/', views.register, name='register'),
