@@ -18,6 +18,7 @@ web3 = Web3(Web3.HTTPProvider(alchemy_url))
 
 # Create your views here.
 
+
 with open(settings.JSON_PATH) as f_obj:
     erc20_abi = json.load(f_obj)
 
@@ -39,41 +40,36 @@ def balance(request):
     address = request.session['info']['address']
     balance = web3.eth.get_balance(address)
     balance = web3.from_wei(balance, 'ether')
-    return JsonResponse({'balance': balance})
+    return JsonResponse({ 'balance': balance })
     
 @login_required
 def token_balance(request, contract_address):
     address = request.session['info']['address']
     checksum_address = Web3.to_checksum_address(address)
-    print(checksum_address)
     contract = web3.eth.contract(address=contract_address, abi=erc20_abi)
     balance = contract.functions.balanceOf(checksum_address).call()
     balance = web3.from_wei(balance, 'ether')
-    return JsonResponse({'balance': balance})
+    return JsonResponse({ 'balance': balance })
 
 @login_required
 def send_tx(request):
-    if request.method == "POST":
-        json_data = request.body.decode('utf-8')
-        print('hehe', json_data)
-        # amount = request.POST.get('amount')
-        data = json.loads(json_data)
-        print('Hello,', data['amount'])
-        print('Hello,', data['to'])
-        nonce = web3.eth.get_transaction_count(request.session['info']['address'])
-        txn_dict = {
-            'to': data['to'],
-            'value': Web3.to_wei(data['amount'], 'ether'),
-            'gas': 2000000,
-            'gasPrice': Web3.to_wei('40', 'gwei'),
-            'nonce': nonce,
-            'chainId': 3
-        }
-        signed_txn = web3.eth.account.sign_transaction(txn_dict, request.session['info']['privateKey'])
-        txn_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
-        return JsonResponse({'transaction_hash': txn_hash.hex()})
-    else:
-        return JsonResponse({'transaction_hash': 'Error'})
+    try:
+        if request.method == "POST":
+            data = json.loads(request.body)
+            nonce = web3.eth.get_transaction_count(request.session['info']['address'])
+            txn_dict = {
+                'to': data['address'],
+                'value': Web3.to_wei(data['amount'], 'ether'),
+                'gas': 25000,
+                'gasPrice': Web3.to_wei('40', 'gwei'),
+                'nonce': nonce,
+                'chainId': 11155111
+            }
+            signed_txn = web3.eth.account.sign_transaction(txn_dict, request.session['info']['privateKey'])
+            txn_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+            return JsonResponse({'transaction_hash': txn_hash.hex()})
+    except ValueError as e:
+        return JsonResponse({ 'error': e.args[0]['message'] })
 
 @login_required
 def market_data(request, contract_address, days):
@@ -94,5 +90,6 @@ def register(request):
     return render(request, 'crypto_wallet/register.html', context)
 
 @login_required
-def logout(request):
+def log_out(request):
+    logout(request)
     return redirect('/')

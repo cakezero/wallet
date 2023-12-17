@@ -7,7 +7,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     </head>
 
-    <p>
+    <body>
         {% if user.is_authenticated %}
             <nav>
                 Hello, {{ user.username }} - <a href="{% url 'crypto_wallet:logout' %}">Logout</a>
@@ -29,8 +29,8 @@
             <h2>Send Transaction</h2>
             <form action="{% url 'crypto_wallet:send_tx' %}" method="post">
                 {% csrf_token %}
-                <input type="text" id="recipient-address" placeholder="Enter Recipient's Address">
-                <input type="text" id="amount" placeholder="Enter Amount to Send in ETH">
+                <input type="text" name="address" id="recipient-address" placeholder="Enter Recipient's Address">
+                <input type="text" name="amount" id="amount" placeholder="Enter Amount to Send in ETH">
                 <button id="send-transaction">Send Transaction</button>
             </form>
             <div id="transaction-info"></div>
@@ -72,23 +72,38 @@
                     });
                 });
 
-                $("#send-transaction").click(function () {
-                    var to = $("#recipient-address").val();
-                    console.log(to);
-                    var amount = $("#amount").val();
-                    console.log(amount);
-                    fetch('/send_tx/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ to, amount })
-                    })
-                    .then(data => {
-                        $("#transaction-info").html("Transaction Hash: " + data.transaction_hash);
-                    })
-                    .catch(error => { console.error('Error:', error); });
-                });
+                const form = document.querySelector('form')
+
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const address = form.address.value;
+                    const amount = form.amount.value;
+                    const csrfToken = document.getElementsByName('csrfmiddlewaretoken')[0].value;
+
+                    const bal = document.getElementById("eth-balance-info").value;
+
+                    try {
+                        if (amount < bal){
+                            $("#transaction-info").html("Error: Insufficient balance");
+                        }
+                        const res = await fetch('/send_tx/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken':csrfToken },
+                            body: JSON.stringify({ address, amount })
+                        })
+
+                        const data = await res.json();
+                        if (data.error){
+                            $("#transaction-info").html("Error: " + data.error[0].toUpperCase() + data.error.slice(1,26).toLowerCase());
+                        } else {
+                            $("#transaction-info").html("Transaction Hash: " + data.transaction_hash);
+                        }
+                    } catch (error) {
+                        console.log(error)
+                    }
+                })
 
                 $("#view-market-chart").click(function () {
                     var contract_address = $("#market-chart-contract-address").val();
